@@ -1,0 +1,48 @@
+HW = hw
+SW = sw/embedded/
+HW_INSTANCES := $(shell cd $(HW) && find . -maxdepth 1 -type d)
+HW_INSTANCES := $(basename $(patsubst ./%,%,$(HW_INSTANCES)))
+SW_INSTANCES := $(shell cd $(SW) && find . -maxdepth 1 -type d)
+SW_INSTANCES := $(basename $(patsubst ./%,%,$(SW_INSTANCES)))
+
+RUN_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+$(eval $(RUN_ARGS):;@:)
+all:
+ifeq (vc709,$(firstword $(MAKECMDGOALS)))
+	vc709
+endif
+ifeq (nf10,$(firstword $(MAKECMDGOALS)))
+	nf10 
+endif
+
+nf10:
+	$(MAKE) -C $(HW)/nf10 exporttosdk
+	$(MAKE) -C $(SW)/nf10
+	mkdir -p bitfiles
+	cp $(SW)/nf10/result/download.bit bitfiles/nf10/reference_udp.bit
+
+vc709:
+	$(MAKE) -C $(HW)/vc709
+#	$(MAKE) -C $(SW)/vc709
+	mkdir -p bitfiles
+	cp $(HW)/hw/vc709/synth/reference_udp.runs/impl_1/top.bit bitfiles/vc709/reference_udp.bit
+
+clean:
+	for flow in $(HW_INSTANCES) ; do \
+		echo $$flow; \
+		if test -f $(HW)/$$flow/Makefile; \
+			then $(MAKE) -C $(HW)/$$flow/ clean; \
+		fi; \
+	done;
+	for flow in $(SW_INSTANCES) ; do \
+		if test -f $(SW)/$$flow/Makefile; \
+			then $(MAKE) -C $(SW)/$$flow/ clean; \
+		fi; \
+	done;
+	@echo "/////////////////////////////////////////";
+	@echo "//project cleaned.";
+	@echo "/////////////////////////////////////////";
+
+
+
+

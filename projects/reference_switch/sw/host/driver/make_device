@@ -1,0 +1,6 @@
+#!/bin/bash
+rm -rf /dev/sume
+mknod /dev/sume c 240 1
+chown root /dev/sume
+chmod 0644 /dev/sume
+ls -al /dev/sume

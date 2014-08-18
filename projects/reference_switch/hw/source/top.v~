@@ -1,0 +1,405 @@
+//-----------------------------------------------------------------------------
+//
+// Here comes the NetFPGA new and nice header
+//--
+//------------------------------------------------------------------------------
+
+`timescale 1ps / 1ps
+
+ module top # (
+  parameter          PL_SIM_FAST_LINK_TRAINING           = "FALSE",      // Simulation Speedup
+  parameter          C_DATA_WIDTH                        = 256,         // RX/TX interface data width
+  parameter          KEEP_WIDTH                          = C_DATA_WIDTH / 32,
+  parameter  integer USER_CLK2_FREQ                 = 4,
+  parameter          REF_CLK_FREQ                   = 0,           // 0 - 100 MHz, 1 - 125 MHz,  2 - 250 MHz
+  parameter          AXISTEN_IF_RQ_ALIGNMENT_MODE   = "FALSE",
+  parameter          AXISTEN_IF_CC_ALIGNMENT_MODE   = "FALSE",
+  parameter          AXISTEN_IF_CQ_ALIGNMENT_MODE   = "FALSE",
+  parameter          AXISTEN_IF_RC_ALIGNMENT_MODE   = "FALSE",
+  parameter          AXISTEN_IF_ENABLE_CLIENT_TAG   = 0,
+  parameter          AXISTEN_IF_RQ_PARITY_CHECK     = 0,
+  parameter          AXISTEN_IF_CC_PARITY_CHECK     = 0,
+  parameter          AXISTEN_IF_MC_RX_STRADDLE      = 0,
+  parameter          AXISTEN_IF_ENABLE_RX_MSG_INTFC = 0,
+  parameter   [17:0] AXISTEN_IF_ENABLE_MSG_ROUTE    = 18'h2FFFF
+) (
+
+// Clocks
+  input  [7:0]pcie_7x_mgt_rxn,
+  input  [7:0]pcie_7x_mgt_rxp,
+  output [7:0]pcie_7x_mgt_txn,
+  output [7:0]pcie_7x_mgt_txp,
+  
+  input       sys_clkp,
+  input       sys_clkn,
+  input       clk_ref_p,
+  input       clk_ref_n,
+
+  input       sys_reset
+);
+  
+//----------------------------------------------------------------------------------------------------------------//
+  //    PCI-Express Interface                                                                                       //
+  //----------------------------------------------------------------------------------------------------------------//
+
+//  wire [7:0]pcie_7x_mgt_rxn;
+//  wire [7:0]pcie_7x_mgt_rxp;
+//  wire [7:0]pcie_7x_mgt_txn;
+//  wire [7:0]pcie_7x_mgt_txp;
+ // wire sys_clkp;
+ // wire sys_clkn;
+ // wire sys_clk;
+//  wire sys_reset;
+
+
+  //----------------------------------------------------------------------------------------------------------------//
+  //    System(SYS) Interface                                                                                       //
+  //----------------------------------------------------------------------------------------------------------------//
+
+  wire                                       sys_clk;
+  wire                                       clk_200_i;
+  wire                                       clk_200;
+  wire                                       sys_rst_n_c;
+
+    //-----------------------------------------------------------------------------------------------------------------------
+  
+  //----------------------------------------------------------------------------------------------------------------//
+  // axis interface                                                                                                 //
+  //----------------------------------------------------------------------------------------------------------------//
+
+  wire[C_DATA_WIDTH-1:0]      axis_i_0_tdata;
+  wire            axis_i_0_tvalid;
+  wire            axis_i_0_tlast;
+  wire            axis_i_0_tuser;
+  wire[C_DATA_WIDTH/8-1:0]       axis_i_0_tstrb;
+  wire            axis_i_0_tready;
+
+  wire[C_DATA_WIDTH-1:0]      axis_o_0_tdata;
+  wire            axis_o_0_tvalid;
+  wire            axis_o_0_tlast;
+  //wire          axis_o_0_tuser;
+  wire[C_DATA_WIDTH/8-1:0]       axis_o_0_tstrb;
+  wire            axis_o_0_tready;
+
+  wire[C_DATA_WIDTH-1:0]      axis_i_1_tdata;
+  wire            axis_i_1_tvalid;
+  wire            axis_i_1_tlast;
+  wire            axis_i_1_tuser;
+  wire[C_DATA_WIDTH-1:0]       axis_i_1_tstrb;
+  wire            axis_i_1_tready;
+
+  wire[C_DATA_WIDTH-1:0]      axis_o_1_tdata;
+  wire            axis_o_1_tvalid;
+  wire            axis_o_1_tlast;
+  //wire            axis_o_1_tuser;
+  wire[C_DATA_WIDTH/8-1:0]       axis_o_1_tstrb;
+  wire            axis_o_1_tready;
+
+  wire[C_DATA_WIDTH-1:0]      axis_i_2_tdata;
+  wire            axis_i_2_tvalid;
+  wire            axis_i_2_tlast;
+  wire            axis_i_2_tuser;
+  wire[C_DATA_WIDTH/8-1:0]       axis_i_2_tstrb;
+  wire            axis_i_2_tready;
+
+  wire[C_DATA_WIDTH-1:0]      axis_o_2_tdata;
+  wire            axis_o_2_tvalid;
+  wire            axis_o_2_tlast;
+  //wire          axis_o_2_tuser;
+  wire[C_DATA_WIDTH/8-1:0]       axis_o_2_tstrb;
+  wire            axis_o_2_tready;
+
+  wire[C_DATA_WIDTH-1:0]      axis_i_3_tdata;
+  wire            axis_i_3_tvalid;
+  wire            axis_i_3_tlast;
+  wire            axis_i_3_tuser;
+  wire[C_DATA_WIDTH/8-1:0]       axis_i_3_tstrb;
+  wire            axis_i_3_tready;
+
+  wire[C_DATA_WIDTH-1:0]      axis_o_3_tdata;
+  wire            axis_o_3_tvalid;
+  wire            axis_o_3_tlast;
+  //wire          axis_o_3_tuser;
+  wire[C_DATA_WIDTH/8-1:0]       axis_o_3_tstrb;
+  wire            axis_o_3_tready;
+  
+ //----------------------------------------------------------------------------------------------------------------//
+ // AXI Lite interface                                                                                                 //
+ //----------------------------------------------------------------------------------------------------------------//
+  wire [31:0]   M00_AXI_araddr;
+  wire [2:0]    M00_AXI_arprot;
+  wire [0:0]    M00_AXI_arready;
+  wire [0:0]    M00_AXI_arvalid;
+  wire [31:0]   M00_AXI_awaddr;
+  wire [2:0]    M00_AXI_awprot;
+  wire [0:0]    M00_AXI_awready;
+  wire [0:0]    M00_AXI_awvalid;
+  wire [0:0]    M00_AXI_bready;
+  wire [1:0]    M00_AXI_bresp;
+  wire [0:0]    M00_AXI_bvalid;
+  wire [31:0]   M00_AXI_rdata;
+  wire [0:0]    M00_AXI_rready;
+  wire [1:0]    M00_AXI_rresp;
+  wire [0:0]    M00_AXI_rvalid;
+  wire [31:0]   M00_AXI_wdata;
+  wire [0:0]    M00_AXI_wready;
+  wire [3:0]    M00_AXI_wstrb;
+  wire [0:0]    M00_AXI_wvalid;
+  
+  wire [31:0]   M01_AXI_araddr;
+  wire [2:0]    M01_AXI_arprot;
+  wire [0:0]    M01_AXI_arready;
+  wire [0:0]    M01_AXI_arvalid;
+  wire [31:0]   M01_AXI_awaddr;
+  wire [2:0]    M01_AXI_awprot;
+  wire [0:0]    M01_AXI_awready;
+  wire [0:0]    M01_AXI_awvalid;
+  wire [0:0]    M01_AXI_bready;
+  wire [1:0]    M01_AXI_bresp;
+  wire [0:0]    M01_AXI_bvalid;
+  wire [31:0]   M01_AXI_rdata;
+  wire [0:0]    M01_AXI_rready;
+  wire [1:0]    M01_AXI_rresp;
+  wire [0:0]    M01_AXI_rvalid;
+  wire [31:0]   M01_AXI_wdata;
+  wire [0:0]    M01_AXI_wready;
+  wire [3:0]    M01_AXI_wstrb;
+  wire [0:0]    M001_AXI_wvalid;
+    
+  
+  wire axi_aresetn;
+  wire axi_clk;
+  // --------------------------------------------------------------------
+  //I2C Synthesizer Interface
+  // 50mhz clk
+  // --------------------------------------------------------------------
+  wire          clk50;
+  reg [1:0]     clk_divide = 2'b00;
+
+  //---------------------------------------------------------------------
+  // Misc 
+  //---------------------------------------------------------------------
+  
+  IBUF   sys_reset_n_ibuf (  .O(sys_rst_n_c),   .I(~sys_reset));
+
+    IBUFDS_GTE2 #(
+     .CLKCM_CFG("TRUE"),   // Refer to Transceiver User Guide
+     .CLKRCV_TRST("TRUE"), // Refer to Transceiver User Guide
+     .CLKSWING_CFG(2'b11)  // Refer to Transceiver User Guide
+  )
+  IBUFDS_GTE2_inst (
+     .O(sys_clk),         // 1-bit output: Refer to Transceiver User Guide
+     .ODIV2(),            // 1-bit output: Refer to Transceiver User Guide
+     .CEB(1'b0),          // 1-bit input: Refer to Transceiver User Guide
+     .I(sys_clkp),        // 1-bit input: Refer to Transceiver User Guide
+     .IB(sys_clkn)        // 1-bit input: Refer to Transceiver User Guide
+  );  
+  
+ 
+   // 200mhz ref clk
+  IBUFGDS #(
+    .DIFF_TERM    ("TRUE"),
+    .IBUF_LOW_PWR ("FALSE")
+  ) diff_clk_200 (
+    .I    (clk_ref_p  ),
+    .IB   (clk_ref_n  ),
+    .O    (clk_200_i )  
+  );
+  
+  BUFG u_bufg_clk_ref
+  (
+    .O (clk_200),
+    .I (clk_200_i)
+  );
+  
+ 
+ 
+wire reset;
+assign reset = !sys_rst_n_c;
+
+
+//-----------------------------------------------------------------------------------------------//
+// Network modules                                                                               //
+//-----------------------------------------------------------------------------------------------//
+
+nf10_datapath 
+#(
+    // Master AXI Stream Data Width
+    .C_M_AXIS_DATA_WIDTH (C_DATA_WIDTH),
+    .C_S_AXIS_DATA_WIDTH (C_DATA_WIDTH),
+    .C_M_AXIS_TUSER_WIDTH (128),
+    .C_S_AXIS_TUSER_WIDTH (128),
+    .NUM_QUEUES (5)
+)
+nf10_datapath_0 
+(
+   // .axi_aclk                        (clk_200),
+    .axi_aclk                        (axi_clk),
+  //  .axi_resetn                      (sys_rst_n_c),
+    .axi_resetn                      (axi_aresetn),
+    
+    // Slave Stream Ports (interface from Rx queues)
+    .s_axis_tdata_0                  (axis_i_0_tdata),  
+    .s_axis_tstrb_0                  (axis_i_0_tstrb),  
+    .s_axis_tuser_0                  (axis_i_0_tuser),  
+    .s_axis_tvalid_0                 (axis_i_0_tvalid), 
+    .s_axis_tready_0                 (axis_i_0_tready), 
+    .s_axis_tlast_0                  (axis_i_0_tlast),  
+    .s_axis_tdata_1                  (axis_i_1_tdata),  
+    .s_axis_tstrb_1                  (axis_i_1_tstrb),  
+    .s_axis_tuser_1                  (axis_i_1_tuser),  
+    .s_axis_tvalid_1                 (axis_i_1_tvalid), 
+    .s_axis_tready_1                 (axis_i_1_tready), 
+    .s_axis_tlast_1                  (axis_i_1_tlast),  
+    .s_axis_tdata_2                  (axis_i_2_tdata),  
+    .s_axis_tstrb_2                  (axis_i_2_tstrb),  
+    .s_axis_tuser_2                  (axis_i_2_tuser),  
+    .s_axis_tvalid_2                 (axis_i_2_tvalid), 
+    .s_axis_tready_2                 (axis_i_2_tready), 
+    .s_axis_tlast_2                  (axis_i_2_tlast),  
+    .s_axis_tdata_3                  (),  
+    .s_axis_tstrb_3                  (),  
+    .s_axis_tuser_3                  (),  
+    .s_axis_tvalid_3                 (), 
+    .s_axis_tready_3                 (), 
+    .s_axis_tlast_3                  (),  
+    .s_axis_tdata_4                  (axis_i_3_tdata), 
+    .s_axis_tstrb_4                  (axis_i_3_tstrb), 
+    .s_axis_tuser_4                  (axis_i_3_tuser), 
+    .s_axis_tvalid_4                 (axis_i_3_tvalid), 
+    .s_axis_tready_4                 (axis_i_3_tready), 
+    .s_axis_tlast_4                  (axis_i_3_tlast),  
+
+
+    // Master Stream Ports (interface to TX queues)
+    .m_axis_tdata_0                  (axis_o_0_tdata),
+    .m_axis_tstrb_0                  (axis_o_0_tstrb),
+    .m_axis_tuser_0                  (axis_o_0_tuser),
+    .m_axis_tvalid_0                 (axis_o_0_tvalid),
+    .m_axis_tready_0                 (axis_o_0_tready),
+    .m_axis_tlast_0                  (axis_o_0_tlast),
+    .m_axis_tdata_1                  (axis_o_1_tdata), 
+    .m_axis_tstrb_1                  (axis_o_1_tstrb), 
+    .m_axis_tuser_1                  (axis_o_1_tuser), 
+    .m_axis_tvalid_1                 (axis_o_1_tvalid),
+    .m_axis_tready_1                 (axis_o_1_tready),
+    .m_axis_tlast_1                  (axis_o_1_tlast), 
+    .m_axis_tdata_2                  (axis_o_2_tdata), 
+    .m_axis_tstrb_2                  (axis_o_2_tstrb), 
+    .m_axis_tuser_2                  (axis_o_2_tuser), 
+    .m_axis_tvalid_2                 (axis_o_2_tvalid),
+    .m_axis_tready_2                 (axis_o_2_tready),
+    .m_axis_tlast_2                  (axis_o_2_tlast), 
+    .m_axis_tdata_3                  (), 
+    .m_axis_tstrb_3                  (), 
+    .m_axis_tuser_3                  (), 
+    .m_axis_tvalid_3                 (),
+    .m_axis_tready_3                 (),
+    .m_axis_tlast_3                  (), 
+    .m_axis_tdata_4                  (axis_o_3_tdata),
+    .m_axis_tstrb_4                  (axis_o_3_tstrb),
+    .m_axis_tuser_4                  (axis_o_3_tuser),
+    .m_axis_tvalid_4                 (axis_o_3_tvalid),
+    .m_axis_tready_4                 (axis_o_3_tready),
+    .m_axis_tlast_4                  (axis_o_3_tlast),
+   
+   //AXI-Lite interface  
+ 
+    .S0_AXI_AWADDR                    (M00_AXI_awaddr), 
+    .S0_AXI_AWVALID                   (M00_AXI_awvalid),
+    .S0_AXI_WDATA                     (M00_AXI_wdata),  
+    .S0_AXI_WSTRB                     (M00_AXI_wstrb),  
+    .S0_AXI_WVALID                    (M00_AXI_wvalid), 
+    .S0_AXI_BREADY                    (M00_AXI_bready), 
+    .S0_AXI_ARADDR                    (M00_AXI_araddr), 
+    .S0_AXI_ARVALID                   (M00_AXI_arvalid),
+    .S0_AXI_RREADY                    (M00_AXI_rready), 
+    .S0_AXI_ARREADY                   (M00_AXI_arready),
+    .S0_AXI_RDATA                     (M00_AXI_rdata),  
+    .S0_AXI_RRESP                     (M00_AXI_rresp),  
+    .S0_AXI_RVALID                    (M00_AXI_rvalid), 
+    .S0_AXI_WREADY                    (M00_AXI_wready), 
+    .S0_AXI_BRESP                     (M00_AXI_bresp),  
+    .S0_AXI_BVALID                    (M00_AXI_bvalid), 
+    .S0_AXI_AWREADY                   (M00_AXI_awready),
+     
+     .S1_AXI_AWADDR                    (M01_AXI_awaddr), 
+     .S1_AXI_AWVALID                   (M01_AXI_awvalid),
+     .S1_AXI_WDATA                     (M01_AXI_wdata),  
+     .S1_AXI_WSTRB                     (M01_AXI_wstrb),  
+     .S1_AXI_WVALID                    (M01_AXI_wvalid), 
+     .S1_AXI_BREADY                    (M01_AXI_bready), 
+     .S1_AXI_ARADDR                    (M01_AXI_araddr), 
+     .S1_AXI_ARVALID                   (M01_AXI_arvalid),
+     .S1_AXI_RREADY                    (M01_AXI_rready), 
+     .S1_AXI_ARREADY                   (M01_AXI_arready),
+     .S1_AXI_RDATA                     (M01_AXI_rdata),  
+     .S1_AXI_RRESP                     (M01_AXI_rresp),  
+     .S1_AXI_RVALID                    (M01_AXI_rvalid), 
+     .S1_AXI_WREADY                    (M01_AXI_wready), 
+     .S1_AXI_BRESP                     (M01_AXI_bresp),  
+     .S1_AXI_BVALID                    (M01_AXI_bvalid), 
+     .S1_AXI_AWREADY                   (M01_AXI_awready)
+    
+    );
+
+  
+   // PCI Express and PCIe to AXI_Lite bridge
+
+
+pcie2axilite_sub pcie2axilite_sub_i
+       (
+           .M00_AXI_araddr  (M00_AXI_araddr  ),
+           .M00_AXI_arprot  (M00_AXI_arprot  ),
+           .M00_AXI_arready (M00_AXI_arready ),
+           .M00_AXI_arvalid (M00_AXI_arvalid ),
+           .M00_AXI_awaddr  (M00_AXI_awaddr  ),
+           .M00_AXI_awprot  (M00_AXI_awprot  ),
+           .M00_AXI_awready (M00_AXI_awready ),
+           .M00_AXI_awvalid (M00_AXI_awvalid ),
+           .M00_AXI_bready  (M00_AXI_bready  ),
+           .M00_AXI_bresp   (M00_AXI_bresp   ),
+           .M00_AXI_bvalid  (M00_AXI_bvalid  ),
+           .M00_AXI_rdata   (M00_AXI_rdata   ),
+           .M00_AXI_rready  (M00_AXI_rready  ),
+           .M00_AXI_rresp   (M00_AXI_rresp   ),
+           .M00_AXI_rvalid  (M00_AXI_rvalid  ),
+           .M00_AXI_wdata   (M00_AXI_wdata   ),
+           .M00_AXI_wready  (M00_AXI_wready  ),
+           .M00_AXI_wstrb   (M00_AXI_wstrb   ),
+           .M00_AXI_wvalid  (M00_AXI_wvalid  ),
+           
+           .M01_AXI_araddr  (M01_AXI_araddr  ),
+           .M01_AXI_arprot  (M01_AXI_arprot  ),
+           .M01_AXI_arready (M01_AXI_arready ),
+           .M01_AXI_arvalid (M01_AXI_arvalid ),
+           .M01_AXI_awaddr  (M01_AXI_awaddr  ),
+           .M01_AXI_awprot  (M01_AXI_awprot  ),
+           .M01_AXI_awready (M01_AXI_awready ),
+           .M01_AXI_awvalid (M01_AXI_awvalid ),
+           .M01_AXI_bready  (M01_AXI_bready  ),
+           .M01_AXI_bresp   (M01_AXI_bresp   ),
+           .M01_AXI_bvalid  (M01_AXI_bvalid  ),
+           .M01_AXI_rdata   (M01_AXI_rdata   ),
+           .M01_AXI_rready  (M01_AXI_rready  ),
+           .M01_AXI_rresp   (M01_AXI_rresp   ),
+           .M01_AXI_rvalid  (M01_AXI_rvalid  ),
+           .M01_AXI_wdata   (M01_AXI_wdata   ),
+           .M01_AXI_wready  (M01_AXI_wready  ),
+           .M01_AXI_wstrb   (M01_AXI_wstrb   ),
+           .M01_AXI_wvalid  (M01_AXI_wvalid  ),           
+
+           .axi_aresetn (axi_aresetn),
+           .axi_clk (axi_clk),
+       
+        .pcie_7x_mgt_rxn(pcie_7x_mgt_rxn),
+        .pcie_7x_mgt_rxp(pcie_7x_mgt_rxp),
+        .pcie_7x_mgt_txn(pcie_7x_mgt_txn),
+        .pcie_7x_mgt_txp(pcie_7x_mgt_txp),
+        .sys_clk(sys_clk),
+        .sys_reset(~sys_reset));
+
+
+
+endmodule
+
